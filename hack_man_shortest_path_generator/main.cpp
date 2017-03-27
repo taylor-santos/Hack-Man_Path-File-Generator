@@ -17,6 +17,7 @@ vector<vector<int>> pathLengths;
 vector<vector<vector<int>>> bestPathsWithDirection;
 vector<vector<vector<int>>> pathLengthsWithDirection;
 vector<int> optimalPlacements;
+vector<vector<int>> numberOfCloserPoints;
 
 int is_adjacent(int ax, int ay, int bx, int by) {
 	/*
@@ -88,18 +89,30 @@ void main() {
 				visited.push_back(startIndex);
 				bestPaths[startIndex][startIndex] = -1;
 				pathLengths[startIndex][startIndex] = 0;
-				for (int d = 0; d < 4; ++d) {
-					if (startX + dx[d] < 0 || startX + dx[d] > 19 || startY + dy[d] < 0 || startY + dy[d] > 13)
-						continue;
-					int neighbor = index[startX + dx[d]][startY + dy[d]];
-					if (neighbor != -1){
-						if (bugSpawns[startIndex] && bugSpawns[neighbor] || !bugSpawns[neighbor])
-						{
-							bestPaths[startIndex][neighbor] = d;
-							pathLengths[startIndex][neighbor] = 1;
-							Q.push(neighbor);
-							length_Q.push(1);
-							startDir.push(d);
+				int aboveIndex = -1;
+				if (bugSpawns[startIndex]) {
+					aboveIndex = index[startX][startY - 1];
+				}
+				if (aboveIndex != -1 && !bugSpawns[aboveIndex]){
+					bestPaths[startIndex][aboveIndex] = 0;
+					pathLengths[startIndex][aboveIndex] = 1;
+					Q.push(aboveIndex);
+					length_Q.push(1);
+					startDir.push(0);
+				} else {
+					for (int d = 0; d < 4; ++d) {
+						if (startX + dx[d] < 0 || startX + dx[d] > 19 || startY + dy[d] < 0 || startY + dy[d] > 13)
+							continue;
+						int neighbor = index[startX + dx[d]][startY + dy[d]];
+						if (neighbor != -1) {
+							if (bugSpawns[startIndex] && bugSpawns[neighbor] || !bugSpawns[neighbor])
+							{
+								bestPaths[startIndex][neighbor] = d;
+								pathLengths[startIndex][neighbor] = 1;
+								Q.push(neighbor);
+								length_Q.push(1);
+								startDir.push(d);
+							}
 						}
 					}
 				}
@@ -114,22 +127,36 @@ void main() {
 					int currY = coordinates[curr][1];
 					int dx[4] = { 0, 1, 0,-1 };
 					int dy[4] = { -1, 0, 1, 0 };
-					for (int d = 0; d < 4; ++d) {
-						if (currX + dx[d] < 0 || currX + dx[d] > 19 || currY + dy[d] < 0 || currY + dy[d] > 13)
+					int aboveIndex = -1;
+					if (bugSpawns[curr]) {
+						aboveIndex = index[currX][currY - 1];
+					}
+					if (aboveIndex != -1 && !bugSpawns[aboveIndex]) {
+						if (find(visited.begin(), visited.end(), aboveIndex) != visited.end())
 							continue;
-						if (index[currX + dx[d]][currY + dy[d]] != -1) {
-							int neighbor = index[currX + dx[d]][currY + dy[d]];
-							if (neighbor != -1)
-							{
-								if (bugSpawns[startIndex] && bugSpawns[neighbor] || !bugSpawns[neighbor])
+						bestPaths[startIndex][aboveIndex] = curr_start_dir;
+						pathLengths[startIndex][aboveIndex] = curr_length + 1;
+						Q.push(aboveIndex);
+						length_Q.push(curr_length + 1);
+						startDir.push(curr_start_dir);
+					} else {
+						for (int d = 0; d < 4; ++d) {
+							if (currX + dx[d] < 0 || currX + dx[d] > 19 || currY + dy[d] < 0 || currY + dy[d] > 13)
+								continue;
+							if (index[currX + dx[d]][currY + dy[d]] != -1) {
+								int neighbor = index[currX + dx[d]][currY + dy[d]];
+								if (neighbor != -1)
 								{
-									if (find(visited.begin(), visited.end(), neighbor) != visited.end())
-										continue;
-									bestPaths[startIndex][neighbor] = curr_start_dir;
-									pathLengths[startIndex][neighbor] = curr_length + 1;
-									Q.push(neighbor);
-									length_Q.push(curr_length + 1);
-									startDir.push(curr_start_dir);
+									if (bugSpawns[startIndex] && bugSpawns[neighbor] || !bugSpawns[neighbor])
+									{
+										if (find(visited.begin(), visited.end(), neighbor) != visited.end())
+											continue;
+										bestPaths[startIndex][neighbor] = curr_start_dir;
+										pathLengths[startIndex][neighbor] = curr_length + 1;
+										Q.push(neighbor);
+										length_Q.push(curr_length + 1);
+										startDir.push(curr_start_dir);
+									}
 								}
 							}
 						}
@@ -217,19 +244,31 @@ void main() {
 					visited.push_back(startIndex);
 					bestPathsWithDirection[direction][startIndex][startIndex] = -1;
 					pathLengthsWithDirection[direction][startIndex][startIndex] = 0;
-					for (int d = 0; d < 4; ++d) {
-						if (startX + dx[d] < 0 || startX + dx[d] > 19 || startY + dy[d] < 0 || startY + dy[d] > 13 || d == (direction+2)%4)
-							continue;
-						int neighbor = index[startX + dx[d]][startY + dy[d]];
-						if (neighbor != -1)
-						{
-							if (bugSpawns[startIndex] && bugSpawns[neighbor] || !bugSpawns[neighbor])
+					int aboveIndex = -1;
+					if (bugSpawns[startIndex]) {
+						aboveIndex = index[startX][startY - 1];
+					}
+					if (aboveIndex != -1 && !bugSpawns[aboveIndex]) {
+						bestPathsWithDirection[direction][startIndex][aboveIndex] = 0;
+						pathLengthsWithDirection[direction][startIndex][aboveIndex] = 1;
+						Q.push(aboveIndex);
+						length_Q.push(1);
+						startDir.push(0);
+					} else {
+						for (int d = 0; d < 4; ++d) {
+							if (startX + dx[d] < 0 || startX + dx[d] > 19 || startY + dy[d] < 0 || startY + dy[d] > 13 || d == (direction + 2) % 4)
+								continue;
+							int neighbor = index[startX + dx[d]][startY + dy[d]];
+							if (neighbor != -1)
 							{
-								bestPathsWithDirection[direction][startIndex][neighbor] = d;
-								pathLengthsWithDirection[direction][startIndex][neighbor] = 1;
-								Q.push(neighbor);
-								length_Q.push(1);
-								startDir.push(d);
+								if (bugSpawns[startIndex] && bugSpawns[neighbor] || !bugSpawns[neighbor])
+								{
+									bestPathsWithDirection[direction][startIndex][neighbor] = d;
+									pathLengthsWithDirection[direction][startIndex][neighbor] = 1;
+									Q.push(neighbor);
+									length_Q.push(1);
+									startDir.push(d);
+								}
 							}
 						}
 					}
@@ -244,22 +283,36 @@ void main() {
 						int currY = coordinates[curr][1];
 						int dx[4] = { 0, 1, 0,-1 };
 						int dy[4] = { -1, 0, 1, 0 };
-						for (int d = 0; d < 4; ++d) {
-							if (currX + dx[d] < 0 || currX + dx[d] > 19 || currY + dy[d] < 0 || currY + dy[d] > 13)
+						int aboveIndex = -1;
+						if (bugSpawns[curr]) {
+							aboveIndex = index[currX][currY - 1];
+						}
+						if (aboveIndex != -1 && !bugSpawns[aboveIndex]) {
+							if (find(visited.begin(), visited.end(), aboveIndex) != visited.end())
 								continue;
-							if (index[currX + dx[d]][currY + dy[d]] != -1) {
-								int neighbor = index[currX + dx[d]][currY + dy[d]];
-								if (neighbor != -1)
-								{
-									if (bugSpawns[startIndex] && bugSpawns[neighbor] || !bugSpawns[neighbor])
+							bestPathsWithDirection[direction][startIndex][aboveIndex] = curr_start_dir;
+							pathLengthsWithDirection[direction][startIndex][aboveIndex] = curr_length + 1;
+							Q.push(aboveIndex);
+							length_Q.push(curr_length + 1);
+							startDir.push(curr_start_dir);
+						} else {
+							for (int d = 0; d < 4; ++d) {
+								if (currX + dx[d] < 0 || currX + dx[d] > 19 || currY + dy[d] < 0 || currY + dy[d] > 13)
+									continue;
+								if (index[currX + dx[d]][currY + dy[d]] != -1) {
+									int neighbor = index[currX + dx[d]][currY + dy[d]];
+									if (neighbor != -1)
 									{
-										if (find(visited.begin(), visited.end(), neighbor) != visited.end())
-											continue;
-										bestPathsWithDirection[direction][startIndex][neighbor] = curr_start_dir;
-										pathLengthsWithDirection[direction][startIndex][neighbor] = curr_length + 1;
-										Q.push(neighbor);
-										length_Q.push(curr_length + 1);
-										startDir.push(curr_start_dir);
+										if (bugSpawns[startIndex] && bugSpawns[neighbor] || !bugSpawns[neighbor])
+										{
+											if (find(visited.begin(), visited.end(), neighbor) != visited.end())
+												continue;
+											bestPathsWithDirection[direction][startIndex][neighbor] = curr_start_dir;
+											pathLengthsWithDirection[direction][startIndex][neighbor] = curr_length + 1;
+											Q.push(neighbor);
+											length_Q.push(curr_length + 1);
+											startDir.push(curr_start_dir);
+										}
 									}
 								}
 							}
@@ -319,7 +372,7 @@ void main() {
 				int bestNearNodeCount = 0;
 				int bestIndex = -1;
 				for (int y = 0; y < 14; ++y) {
-					for (int x = 0; x < 14; ++x) {
+					for (int x = 0; x < 20; ++x) {
 						int targetIndex = index[x][y];
 						if (targetIndex != -1) {
 							int closerToTargetCount = 0;
@@ -327,7 +380,7 @@ void main() {
 								for (int endX = 0; endX < 20; ++endX) {
 									int endIndex = index[endX][endY];
 									if (endIndex != -1){
-										if (pathLengths[endIndex][startIndex] > pathLengths[endIndex][targetIndex]) {
+										if (pathLengths[startIndex][endIndex] > pathLengths[targetIndex][endIndex]) {
 											closerToTargetCount++;
 										}
 									}
@@ -346,6 +399,49 @@ void main() {
 
 		}
 	}
+
+	numberOfCloserPoints = vector<vector<int>>(spaceIndex);
+	vector<int> totalCloserPoints = vector<int>(spaceIndex);
+	for (int i = 0; i < spaceIndex; ++i) {
+		numberOfCloserPoints[i] = vector<int>(spaceIndex);
+		totalCloserPoints[i] = 0;
+		for (int j = 0; j < spaceIndex; ++j) {
+			numberOfCloserPoints[i][j] = 0;
+		}
+	}
+	int max = 0;
+	int maxI = -1;
+	for (int startY = 0; startY < 14; ++startY) {
+		for (int startX = 0; startX < 20; ++startX) {
+			int startIndex = index[startX][startY];
+			if (startIndex != -1) {
+				for (int y = 0; y < 14; ++y) {
+					for (int x = 0; x < 20; ++x) {
+						int targetIndex = index[x][y];
+						if (targetIndex != -1) {
+							for (int endY = 0; endY < 14; ++endY) {
+								for (int endX = 0; endX < 20; ++endX) {
+									int endIndex = index[endX][endY];
+									if (endIndex != -1) {
+										if (pathLengths[startIndex][endIndex] > pathLengths[targetIndex][endIndex]) {
+											numberOfCloserPoints[startIndex][targetIndex]++;
+											totalCloserPoints[targetIndex]++;
+											if (totalCloserPoints[targetIndex] > max) {
+												max = totalCloserPoints[targetIndex];
+												maxI = targetIndex;
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+
+		}
+	}
+
 	ofstream file;
 	file.open("paths.txt");
 	if (!file.is_open())
@@ -402,6 +498,22 @@ void main() {
 		file << optimalPlacements[i];
 		if (i != spaceIndex - 1)
 			file << ",";
+	}
+	file << "};" << endl << endl;
+
+	file << "const int numberOfCloserPoints[" << spaceIndex << "][" << spaceIndex << "] = ";
+	file << "{" << endl;
+	for (int i = 0; i < spaceIndex; ++i) {
+		file << "    {";
+		for (int j = 0; j < spaceIndex; ++j) {
+			file << numberOfCloserPoints[i][j];
+			if (j != spaceIndex - 1)
+				file << ",";
+		}
+		file << "}";
+		if (i < spaceIndex - 1)
+			file << ",";
+		file << endl;
 	}
 	file << "};" << endl << endl;
 
